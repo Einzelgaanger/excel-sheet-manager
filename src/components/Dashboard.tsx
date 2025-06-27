@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Header } from './Header'
@@ -30,10 +30,50 @@ export function Dashboard() {
   const [selectedSheet, setSelectedSheet] = useState<Sheet | null>(null)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(true)
+
+  const fetchSheets = useCallback(async () => {
+    if (!mounted) return
+    
+    try {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('sheets')
+        .select('*')
+        .order('updated_at', { ascending: false })
+
+      if (error) throw error
+
+      if (mounted) {
+        console.log('Fetched sheets:', data)
+        setSheets(data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching sheets:', error)
+      if (mounted) {
+        toast({
+          title: 'Error',
+          description: 'Failed to load sheets. Please try again.',
+          variant: 'destructive',
+        })
+      }
+    } finally {
+      if (mounted) {
+        setLoading(false)
+      }
+    }
+  }, [mounted])
 
   useEffect(() => {
-    fetchSheets()
+    setMounted(true)
+    return () => setMounted(false)
   }, [])
+
+  useEffect(() => {
+    if (profile && mounted) {
+      fetchSheets()
+    }
+  }, [profile, fetchSheets, mounted])
 
   useEffect(() => {
     // Filter sheets based on search query
@@ -44,30 +84,9 @@ export function Dashboard() {
     setFilteredSheets(filtered)
   }, [sheets, searchQuery])
 
-  const fetchSheets = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('sheets')
-        .select('*')
-        .order('updated_at', { ascending: false })
-
-      if (error) throw error
-
-      console.log('Fetched sheets:', data)
-      setSheets(data || [])
-    } catch (error) {
-      console.error('Error fetching sheets:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to load sheets. Please try again.',
-        variant: 'destructive',
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const handleCreateSheet = async (sheetData: { name: string; description: string; data: any[]; columns: string[] }) => {
+    if (!profile?.id || !mounted) return
+
     try {
       console.log('Creating sheet with data:', sheetData)
       
@@ -78,7 +97,7 @@ export function Dashboard() {
           description: sheetData.description,
           data: sheetData.data,
           columns: sheetData.columns,
-          created_by: profile?.id || ''
+          created_by: profile.id
         }])
         .select()
         .single()
@@ -88,19 +107,23 @@ export function Dashboard() {
         throw error
       }
 
-      console.log('Sheet created successfully:', data)
-      setSheets(prev => [data, ...prev])
-      toast({
-        title: 'Success',
-        description: 'Sheet created successfully!',
-      })
+      if (mounted) {
+        console.log('Sheet created successfully:', data)
+        setSheets(prev => [data, ...prev])
+        toast({
+          title: 'Success',
+          description: 'Sheet created successfully!',
+        })
+      }
     } catch (error) {
       console.error('Error creating sheet:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to create sheet. Please try again.',
-        variant: 'destructive',
-      })
+      if (mounted) {
+        toast({
+          title: 'Error',
+          description: 'Failed to create sheet. Please try again.',
+          variant: 'destructive',
+        })
+      }
     }
   }
 
