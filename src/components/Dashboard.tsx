@@ -7,7 +7,7 @@ import { SheetCard } from './SheetCard'
 import { SheetViewer } from './SheetViewer'
 import { CreateSheetDialog } from './CreateSheetDialog'
 import { useAuth } from '@/hooks/useAuth'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/integrations/supabase/client'
 import { Search, Plus, FileSpreadsheet } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 
