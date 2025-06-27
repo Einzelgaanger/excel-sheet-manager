@@ -53,6 +53,7 @@ export function Dashboard() {
 
       if (error) throw error
 
+      console.log('Fetched sheets:', data)
       setSheets(data || [])
     } catch (error) {
       console.error('Error fetching sheets:', error)
@@ -68,17 +69,26 @@ export function Dashboard() {
 
   const handleCreateSheet = async (sheetData: { name: string; description: string; data: any[]; columns: string[] }) => {
     try {
+      console.log('Creating sheet with data:', sheetData)
+      
       const { data, error } = await supabase
         .from('sheets')
         .insert([{
-          ...sheetData,
+          name: sheetData.name,
+          description: sheetData.description,
+          data: sheetData.data,
+          columns: sheetData.columns,
           created_by: profile?.id || ''
         }])
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        console.error('Supabase error:', error)
+        throw error
+      }
 
+      console.log('Sheet created successfully:', data)
       setSheets(prev => [data, ...prev])
       toast({
         title: 'Success',
@@ -95,25 +105,48 @@ export function Dashboard() {
   }
 
   const handleDownloadSheet = (sheet: Sheet) => {
-    // Convert data to CSV format
-    const csvContent = convertToCSV(sheet.data, sheet.columns)
-    downloadCSV(csvContent, `${sheet.name}.csv`)
-    
-    toast({
-      title: 'Download Started',
-      description: `${sheet.name} is being downloaded as CSV.`,
-    })
+    if (!profile?.can_download && !profile?.is_admin) {
+      toast({
+        title: 'Access Denied',
+        description: 'You do not have permission to download files.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      const csvContent = convertToCSV(sheet.data, sheet.columns)
+      downloadCSV(csvContent, `${sheet.name}.csv`)
+      
+      toast({
+        title: 'Download Started',
+        description: `${sheet.name} is being downloaded as CSV.`,
+      })
+    } catch (error) {
+      console.error('Download error:', error)
+      toast({
+        title: 'Download Error',
+        description: 'Failed to download the file. Please try again.',
+        variant: 'destructive',
+      })
+    }
   }
 
   const convertToCSV = (data: any[], columns: string[]) => {
+    if (!data || !columns || data.length === 0) {
+      return columns.join(',') + '\n'
+    }
+
     const header = columns.join(',')
     const rows = data.map(row => 
       columns.map(col => {
-        const value = row[col]
-        // Escape commas and quotes in CSV
-        return typeof value === 'string' && (value.includes(',') || value.includes('"'))
-          ? `"${value.replace(/"/g, '""')}"`
-          : value
+        const value = row[col] || ''
+        const stringValue = String(value)
+        // Escape commas, quotes, and newlines in CSV
+        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+          return `"${stringValue.replace(/"/g, '""')}"`
+        }
+        return stringValue
       }).join(',')
     )
     return [header, ...rows].join('\n')
@@ -129,8 +162,10 @@ export function Dashboard() {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+    URL.revokeObjectURL(url)
   }
 
+  // Show selected sheet viewer
   if (selectedSheet) {
     return (
       <SheetViewer
@@ -151,6 +186,11 @@ export function Dashboard() {
             <h2 className="text-2xl font-bold text-gray-900">Data Sheets</h2>
             <p className="mt-1 text-gray-600">
               {sheets.length} sheet{sheets.length !== 1 ? 's' : ''} available
+              {profile && (
+                <span className="ml-2 text-sm text-blue-600">
+                  • Role: {profile.is_admin ? 'Admin' : profile.can_download ? 'Viewer + Downloader' : 'Viewer'}
+                </span>
+              )}
             </p>
           </div>
           
@@ -220,7 +260,7 @@ export function Dashboard() {
                 sheet={sheet}
                 onView={setSelectedSheet}
                 onEdit={profile?.is_admin ? setSelectedSheet : undefined}
-                onDownload={handleDownloadSheet}
+                onDownload={profile?.can_download || profile?.is_admin ? handleDownloadSheet : undefined}
               />
             ))}
           </div>

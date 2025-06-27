@@ -27,12 +27,31 @@ export function CreateSheetDialog({ open, onOpenChange, onCreateSheet }: CreateS
   const [dragActive, setDragActive] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
+  const [csvPreview, setCsvPreview] = useState<{ columns: string[]; data: any[]; rowCount: number } | null>(null)
 
-  const handleFileSelect = (selectedFile: File) => {
+  const handleFileSelect = async (selectedFile: File) => {
     if (selectedFile && (selectedFile.type === 'text/csv' || selectedFile.name.endsWith('.csv'))) {
       setFile(selectedFile)
       if (!name) {
         setName(selectedFile.name.replace('.csv', ''))
+      }
+      
+      // Parse and preview the CSV
+      try {
+        const fileContent = await selectedFile.text()
+        const parsed = parseCSV(fileContent)
+        setCsvPreview({
+          columns: parsed.columns,
+          data: parsed.data.slice(0, 3), // Show first 3 rows as preview
+          rowCount: parsed.data.length
+        })
+      } catch (error) {
+        console.error('Error parsing CSV:', error)
+        toast({
+          title: 'Error',
+          description: 'Failed to parse CSV file. Please check the format.',
+          variant: 'destructive',
+        })
       }
     } else {
       toast({
@@ -67,17 +86,61 @@ export function CreateSheetDialog({ open, onOpenChange, onCreateSheet }: CreateS
     const lines = csv.split('\n').filter(line => line.trim())
     if (lines.length === 0) return { data: [], columns: [] }
 
-    const columns = lines[0].split(',').map(col => col.trim().replace(/"/g, ''))
-    const data = lines.slice(1).map(line => {
-      const values = line.split(',').map(val => val.trim().replace(/"/g, ''))
+    // Parse headers - handle quoted values and commas
+    const headerLine = lines[0]
+    const columns = parseCSVLine(headerLine)
+    
+    // Parse data rows
+    const data = lines.slice(1).map((line, index) => {
+      const values = parseCSVLine(line)
       const row: any = {}
-      columns.forEach((col, index) => {
-        row[col] = values[index] || ''
+      columns.forEach((col, colIndex) => {
+        row[col] = values[colIndex] || ''
       })
       return row
+    }).filter(row => {
+      // Filter out empty rows
+      return Object.values(row).some(value => value && String(value).trim())
     })
 
     return { data, columns }
+  }
+
+  const parseCSVLine = (line: string): string[] => {
+    const result: string[] = []
+    let current = ''
+    let inQuotes = false
+    let i = 0
+
+    while (i < line.length) {
+      const char = line[i]
+      
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          // Handle escaped quotes
+          current += '"'
+          i += 2
+        } else {
+          inQuotes = !inQuotes
+          i++
+        }
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim())
+        current = ''
+        i++
+      } else if ((char === '\t') && !inQuotes) {
+        // Handle TSV files
+        result.push(current.trim())
+        current = ''
+        i++
+      } else {
+        current += char
+        i++
+      }
+    }
+    
+    result.push(current.trim())
+    return result
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -102,12 +165,14 @@ export function CreateSheetDialog({ open, onOpenChange, onCreateSheet }: CreateS
         const parsed = parseCSV(fileContent)
         sheetData = parsed.data
         columns = parsed.columns
+        
+        console.log('Parsed CSV:', { columns, dataCount: sheetData.length, sampleData: sheetData.slice(0, 2) })
       } else {
         // Create empty sheet with sample structure
-        columns = ['Column A', 'Column B', 'Column C']
+        columns = ['Item', 'Value', 'Date']
         sheetData = [
-          { 'Column A': 'Sample Data 1', 'Column B': 'Value 1', 'Column C': 'Info 1' },
-          { 'Column A': 'Sample Data 2', 'Column B': 'Value 2', 'Column C': 'Info 2' },
+          { 'Item': 'Sample Item 1', 'Value': '100', 'Date': '2024-01-01' },
+          { 'Item': 'Sample Item 2', 'Value': '200', 'Date': '2024-01-02' },
         ]
       }
 
@@ -122,6 +187,7 @@ export function CreateSheetDialog({ open, onOpenChange, onCreateSheet }: CreateS
       setName('')
       setDescription('')
       setFile(null)
+      setCsvPreview(null)
       onOpenChange(false)
     } catch (error) {
       console.error('Error creating sheet:', error)
@@ -137,7 +203,7 @@ export function CreateSheetDialog({ open, onOpenChange, onCreateSheet }: CreateS
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[525px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <FileSpreadsheet className="h-5 w-5" />
@@ -193,7 +259,10 @@ export function CreateSheetDialog({ open, onOpenChange, onCreateSheet }: CreateS
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setFile(null)}
+                    onClick={() => {
+                      setFile(null)
+                      setCsvPreview(null)
+                    }}
                   >
                     Remove File
                   </Button>
@@ -214,12 +283,55 @@ export function CreateSheetDialog({ open, onOpenChange, onCreateSheet }: CreateS
                     </label>
                   </p>
                   <p className="text-xs text-gray-500">
-                    Leave empty to create a blank sheet with sample data
+                    Supports CSV and TSV files with headers
                   </p>
                 </div>
               )}
             </div>
           </div>
+
+          {csvPreview && (
+            <div className="space-y-2">
+              <Label>Preview</Label>
+              <div className="border rounded-lg p-4 bg-gray-50">
+                <p className="text-sm text-gray-600 mb-2">
+                  {csvPreview.rowCount} rows, {csvPreview.columns.length} columns
+                </p>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-xs">
+                    <thead>
+                      <tr className="border-b">
+                        {csvPreview.columns.slice(0, 6).map((col, index) => (
+                          <th key={index} className="text-left p-1 font-medium">
+                            {col.length > 12 ? `${col.substring(0, 12)}...` : col}
+                          </th>
+                        ))}
+                        {csvPreview.columns.length > 6 && (
+                          <th className="text-left p-1 font-medium">...</th>
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {csvPreview.data.map((row, rowIndex) => (
+                        <tr key={rowIndex} className="border-b">
+                          {csvPreview.columns.slice(0, 6).map((col, colIndex) => (
+                            <td key={colIndex} className="p-1">
+                              {String(row[col] || '').length > 15 
+                                ? `${String(row[col] || '').substring(0, 15)}...` 
+                                : String(row[col] || '')}
+                            </td>
+                          ))}
+                          {csvPreview.columns.length > 6 && (
+                            <td className="p-1">...</td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
 
           <DialogFooter>
             <Button

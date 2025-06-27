@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { ArrowLeft, Edit, Save, X, Plus, Trash2, Search, Download } from 'lucide-react'
+import { ArrowLeft, Save, X, Plus, Trash2, Search, Download } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from '@/hooks/use-toast'
@@ -61,8 +61,9 @@ export function SheetViewer({ sheet, onClose, onUpdate }: SheetViewerProps) {
   }, [data, searchQuery])
 
   const handleCellEdit = (rowIndex: number, column: string, value: any) => {
+    if (!profile?.is_admin) return
     setEditingCell({ row: rowIndex, col: column })
-    setEditValue(String(value))
+    setEditValue(String(value || ''))
   }
 
   const handleSaveCell = () => {
@@ -90,11 +91,13 @@ export function SheetViewer({ sheet, onClose, onUpdate }: SheetViewerProps) {
   }
 
   const handleDeleteRow = (rowIndex: number) => {
+    if (!profile?.is_admin) return
     const newData = data.filter((_, index) => index !== rowIndex)
     setData(newData)
   }
 
   const handleAddColumn = () => {
+    if (!profile?.is_admin) return
     if (newColumnName.trim() && !columns.includes(newColumnName.trim())) {
       const newColumns = [...columns, newColumnName.trim()]
       const newData = data.map(row => ({
@@ -109,6 +112,7 @@ export function SheetViewer({ sheet, onClose, onUpdate }: SheetViewerProps) {
   }
 
   const handleDeleteColumn = (columnToDelete: string) => {
+    if (!profile?.is_admin) return
     const newColumns = columns.filter(col => col !== columnToDelete)
     const newData = data.map(row => {
       const { [columnToDelete]: deleted, ...rest } = row
@@ -119,8 +123,11 @@ export function SheetViewer({ sheet, onClose, onUpdate }: SheetViewerProps) {
   }
 
   const handleSave = async () => {
+    if (!profile?.is_admin) return
     setSaving(true)
     try {
+      console.log('Saving sheet data:', { data, columns })
+      
       const { error } = await supabase
         .from('sheets')
         .update({
@@ -150,23 +157,48 @@ export function SheetViewer({ sheet, onClose, onUpdate }: SheetViewerProps) {
   }
 
   const handleDownload = () => {
-    const csvContent = convertToCSV(data, columns)
-    downloadCSV(csvContent, `${sheet.name}.csv`)
-    
-    toast({
-      title: 'Download Started',
-      description: `${sheet.name} is being downloaded as CSV.`,
-    })
+    if (!profile?.can_download && !profile?.is_admin) {
+      toast({
+        title: 'Access Denied',
+        description: 'You do not have permission to download files.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      const csvContent = convertToCSV(data, columns)
+      downloadCSV(csvContent, `${sheet.name}.csv`)
+      
+      toast({
+        title: 'Download Started',
+        description: `${sheet.name} is being downloaded as CSV.`,
+      })
+    } catch (error) {
+      console.error('Download error:', error)
+      toast({
+        title: 'Download Error',
+        description: 'Failed to download the file. Please try again.',
+        variant: 'destructive',
+      })
+    }
   }
 
   const convertToCSV = (data: any[], columns: string[]) => {
+    if (!data || !columns || data.length === 0) {
+      return columns.join(',') + '\n'
+    }
+
     const header = columns.join(',')
     const rows = data.map(row => 
       columns.map(col => {
-        const value = row[col]
-        return typeof value === 'string' && (value.includes(',') || value.includes('"'))
-          ? `"${value.replace(/"/g, '""')}"`
-          : value
+        const value = row[col] || ''
+        const stringValue = String(value)
+        // Escape commas, quotes, and newlines in CSV
+        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+          return `"${stringValue.replace(/"/g, '""')}"`
+        }
+        return stringValue
       }).join(',')
     )
     return [header, ...rows].join('\n')
@@ -182,6 +214,7 @@ export function SheetViewer({ sheet, onClose, onUpdate }: SheetViewerProps) {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+    URL.revokeObjectURL(url)
   }
 
   return (
@@ -198,15 +231,20 @@ export function SheetViewer({ sheet, onClose, onUpdate }: SheetViewerProps) {
                 <h1 className="text-xl font-semibold text-gray-900">{sheet.name}</h1>
                 <p className="text-sm text-gray-500">
                   {data.length} rows • {columns.length} columns
+                  {profile && (
+                    <span className="ml-2">
+                      • Role: {profile.is_admin ? 'Admin' : profile.can_download ? 'Viewer + Downloader' : 'Viewer'}
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center space-x-2">
-              {profile?.can_download && (
+              {(profile?.can_download || profile?.is_admin) && (
                 <Button variant="outline" size="sm" onClick={handleDownload}>
                   <Download className="h-4 w-4 mr-2" />
-                  Download
+                  Download CSV
                 </Button>
               )}
               
@@ -258,7 +296,7 @@ export function SheetViewer({ sheet, onClose, onUpdate }: SheetViewerProps) {
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative group"
                     >
                       <div className="flex items-center justify-between">
-                        <span>{column}</span>
+                        <span title={column}>{column.length > 20 ? `${column.substring(0, 20)}...` : column}</span>
                         {profile?.is_admin && (
                           <Button
                             variant="ghost"
@@ -307,8 +345,12 @@ export function SheetViewer({ sheet, onClose, onUpdate }: SheetViewerProps) {
                             onClick={() => 
                               profile?.is_admin && handleCellEdit(rowIndex, column, row[column])
                             }
+                            title={String(row[column] || '')}
                           >
-                            {row[column] || '—'}
+                            {String(row[column] || '').length > 50 
+                              ? `${String(row[column] || '').substring(0, 50)}...`
+                              : String(row[column] || '') || '—'
+                            }
                           </div>
                         )}
                       </td>
@@ -335,6 +377,12 @@ export function SheetViewer({ sheet, onClose, onUpdate }: SheetViewerProps) {
         {filteredData.length === 0 && searchQuery && (
           <div className="text-center py-8">
             <p className="text-gray-500">No data found matching your search.</p>
+          </div>
+        )}
+
+        {data.length === 0 && (
+          <div className="text-center py-8">
+            <p className="text-gray-500">No data available. {profile?.is_admin ? 'Add some rows to get started.' : ''}</p>
           </div>
         )}
       </div>
