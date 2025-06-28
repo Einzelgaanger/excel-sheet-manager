@@ -1,82 +1,68 @@
 
+import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useAuth } from '@/hooks/useAuth'
-import { Database, LogOut, User, Shield, Eye, Download } from 'lucide-react'
+import { LogOut, FileSpreadsheet } from 'lucide-react'
+import { supabase } from '@/integrations/supabase/client'
 
 export function Header() {
-  const { user, profile, signOut } = useAuth()
+  const { profile } = useAuth()
 
-  const getRoleIcon = () => {
-    if (profile?.is_admin) return <Shield className="h-4 w-4 text-red-500" />
-    if (profile?.can_download) return <Download className="h-4 w-4 text-blue-500" />
-    return <Eye className="h-4 w-4 text-green-500" />
-  }
-
-  const getRoleText = () => {
-    if (profile?.is_admin) return 'Admin'
-    if (profile?.can_download) return 'Viewer & Downloader'
-    return 'Viewer'
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
   }
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200">
+    <header className="bg-white shadow-sm border-b border-red-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-blue-600 rounded-lg">
-              <Database className="h-6 w-6 text-white" />
+            <div className="p-2 bg-gradient-to-br from-red-100 to-red-200 rounded-lg">
+              <FileSpreadsheet className="h-6 w-6 text-red-700" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Company Data Hub</h1>
-              <p className="text-sm text-gray-500">Excel Sheet Management</p>
+              <h1 className="text-lg font-bold bg-gradient-to-r from-red-700 to-red-900 bg-clip-text text-transparent">
+                Algum Africa Capital LLP
+              </h1>
+              <p className="text-sm text-red-600">Data Management System</p>
             </div>
           </div>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={profile?.avatar_url || ''} alt={profile?.full_name || ''} />
-                  <AvatarFallback>
-                    {profile?.full_name?.split(' ').map(n => n[0]).join('') || user?.email?.[0].toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end" forceMount>
-              <div className="flex items-center justify-start gap-2 p-2">
-                <div className="flex flex-col space-y-1 leading-none">
-                  <p className="font-medium text-sm">{profile?.full_name || 'User'}</p>
-                  <p className="text-xs text-gray-500">{user?.email}</p>
-                </div>
-              </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer">
-                <User className="mr-2 h-4 w-4" />
-                <span>Profile</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer">
-                {getRoleIcon()}
-                <span className="ml-2">Role: {getRoleText()}</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                className="cursor-pointer text-red-600 focus:text-red-600"
-                onClick={signOut}
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Sign Out</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center space-x-4">
+            {profile && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={profile.avatar_url || ''} alt={profile.full_name || profile.email} />
+                      <AvatarFallback className="bg-red-100 text-red-700">
+                        {(profile.full_name || profile.email).charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 bg-white border-red-200" align="end" forceMount>
+                  <div className="flex flex-col space-y-1 p-2">
+                    <p className="text-sm font-medium leading-none">{profile.full_name || 'User'}</p>
+                    <p className="text-xs leading-none text-muted-foreground">{profile.email}</p>
+                    <p className="text-xs text-red-600">
+                      {profile.is_admin ? 'Administrator' : profile.can_download ? 'Viewer + Downloader' : 'Viewer'}
+                    </p>
+                  </div>
+                  <DropdownMenuItem onClick={handleSignOut} className="text-red-600 hover:bg-red-50">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </div>
       </div>
     </header>

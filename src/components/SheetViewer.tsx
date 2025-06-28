@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -25,6 +24,9 @@ type Sheet = {
   updated_at: string
   data: any
   columns: string[]
+  file_type: string
+  file_url: string | null
+  file_size: number | null
 }
 
 interface SheetViewerProps {
@@ -45,6 +47,13 @@ export function SheetViewer({ sheet, onClose, onUpdate }: SheetViewerProps) {
   const [showAddColumnDialog, setShowAddColumnDialog] = useState(false)
   const [newColumnName, setNewColumnName] = useState('')
   const [saving, setSaving] = useState(false)
+
+  const isSpreadsheet = sheet.file_type === 'text/csv' || 
+                       sheet.file_type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+                       sheet.file_type === 'application/vnd.ms-excel'
+  
+  const isImage = sheet.file_type?.includes('image')
+  const isPDF = sheet.file_type?.includes('pdf')
 
   useEffect(() => {
     // Filter data based on search query
@@ -184,107 +193,40 @@ export function SheetViewer({ sheet, onClose, onUpdate }: SheetViewerProps) {
     }
   }
 
-  const convertToCSV = (data: any[], columns: string[]) => {
-    if (!data || !columns || data.length === 0) {
-      return columns.join(',') + '\n'
-    }
-
-    const header = columns.join(',')
-    const rows = data.map(row => 
-      columns.map(col => {
-        const value = row[col] || ''
-        const stringValue = String(value)
-        // Escape commas, quotes, and newlines in CSV
-        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
-          return `"${stringValue.replace(/"/g, '""')}"`
-        }
-        return stringValue
-      }).join(',')
-    )
-    return [header, ...rows].join('\n')
-  }
-
-  const downloadCSV = (csvContent: string, filename: string) => {
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    const url = URL.createObjectURL(blob)
-    link.setAttribute('href', url)
-    link.setAttribute('download', filename)
-    link.style.visibility = 'hidden'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm" onClick={onClose}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Button>
-              <div>
-                <h1 className="text-xl font-semibold text-gray-900">{sheet.name}</h1>
-                <p className="text-sm text-gray-500">
-                  {data.length} rows • {columns.length} columns
-                  {profile && (
-                    <span className="ml-2">
-                      • Role: {profile.is_admin ? 'Admin' : profile.can_download ? 'Viewer + Downloader' : 'Viewer'}
-                    </span>
-                  )}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              {(profile?.can_download || profile?.is_admin) && (
-                <Button variant="outline" size="sm" onClick={handleDownload}>
-                  <Download className="h-4 w-4 mr-2" />
-                  Download CSV
-                </Button>
-              )}
-              
-              {profile?.is_admin && (
-                <Button onClick={handleSave} disabled={saving} size="sm">
-                  <Save className="h-4 w-4 mr-2" />
-                  {saving ? 'Saving...' : 'Save Changes'}
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="mb-6 flex items-center justify-between">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Search data..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+  const renderFileContent = () => {
+    if (isImage && sheet.file_url) {
+      return (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="text-center">
+            <img 
+              src={sheet.file_url} 
+              alt={sheet.name}
+              className="max-w-full max-h-96 mx-auto rounded-lg shadow-md"
             />
           </div>
-
-          {profile?.is_admin && (
-            <div className="flex space-x-2">
-              <Button variant="outline" size="sm" onClick={() => setShowAddColumnDialog(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Column
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowAddRowDialog(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Row
-              </Button>
-            </div>
-          )}
         </div>
+      )
+    }
 
+    if (isPDF && sheet.file_url) {
+      return (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="text-center space-y-4">
+            <iframe 
+              src={sheet.file_url}
+              className="w-full h-96 border rounded-lg"
+              title={sheet.name}
+            />
+            <p className="text-sm text-gray-600">
+              PDF Preview - <a href={sheet.file_url} target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline">Open in new tab</a>
+            </p>
+          </div>
+        </div>
+      )
+    }
+
+    if (isSpreadsheet) {
+      return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -373,14 +315,151 @@ export function SheetViewer({ sheet, onClose, onUpdate }: SheetViewerProps) {
             </table>
           </div>
         </div>
+      )
+    }
 
-        {filteredData.length === 0 && searchQuery && (
+    return (
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="text-center py-8">
+          <p className="text-gray-500">Preview not available for this file type.</p>
+          {sheet.file_url && (
+            <a 
+              href={sheet.file_url} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-red-600 hover:underline mt-2 inline-block"
+            >
+              Download to view file
+            </a>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  const convertToCSV = (data: any[], columns: string[]) => {
+    if (!data || !columns || data.length === 0) {
+      return columns.join(',') + '\n'
+    }
+
+    const header = columns.join(',')
+    const rows = data.map(row => 
+      columns.map(col => {
+        const value = row[col] || ''
+        const stringValue = String(value)
+        // Escape commas, quotes, and newlines in CSV
+        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+          return `"${stringValue.replace(/"/g, '""')}"`
+        }
+        return stringValue
+      }).join(',')
+    )
+    return [header, ...rows].join('\n')
+  }
+
+  const downloadCSV = (csvContent: string, filename: string) => {
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', filename)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center space-x-4">
+              <Button variant="ghost" size="sm" onClick={onClose}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              {(profile?.can_download || profile?.is_admin) && (
+                <Button variant="outline" size="sm" onClick={handleDownload}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Download
+                </Button>
+              )}
+              
+              {profile?.is_admin && isSpreadsheet && (
+                <Button onClick={handleSave} disabled={saving} size="sm">
+                  <Save className="h-4 w-4 mr-2" />
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* File Details Header */}
+        <div className="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">{sheet.name}</h1>
+          {sheet.description && (
+            <p className="text-gray-600 mb-4">{sheet.description}</p>
+          )}
+          <div className="flex items-center space-x-6 text-sm text-gray-500">
+            {isSpreadsheet && (
+              <>
+                <span>{data.length} rows</span>
+                <span>{columns.length} columns</span>
+              </>
+            )}
+            <span>File size: {sheet.file_size ? `${(sheet.file_size / 1024).toFixed(1)} KB` : 'Unknown'}</span>
+            {profile && (
+              <span>
+                Role: {profile.is_admin ? 'Admin' : profile.can_download ? 'Viewer + Downloader' : 'Viewer'}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {isSpreadsheet && (
+          <div className="mb-6 flex items-center justify-between">
+            <div className="relative max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search data..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {profile?.is_admin && (
+              <div className="flex space-x-2">
+                <Button variant="outline" size="sm" onClick={() => setShowAddColumnDialog(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Column
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setShowAddRowDialog(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Row
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {renderFileContent()}
+
+        {isSpreadsheet && filteredData.length === 0 && searchQuery && (
           <div className="text-center py-8">
             <p className="text-gray-500">No data found matching your search.</p>
           </div>
         )}
 
-        {data.length === 0 && (
+        {isSpreadsheet && data.length === 0 && (
           <div className="text-center py-8">
             <p className="text-gray-500">No data available. {profile?.is_admin ? 'Add some rows to get started.' : ''}</p>
           </div>

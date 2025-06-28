@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Progress } from '@/components/ui/progress'
-import { Upload, File, Image, FileText, Table } from 'lucide-react'
+import { Upload, File, Image, FileText } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from '@/hooks/use-toast'
@@ -28,23 +28,29 @@ export function FileUploadDialog({ open, onOpenChange, onUploadComplete }: FileU
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const supportedTypes = {
-    'text/csv': { icon: Table, label: 'CSV', color: 'text-green-600' },
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': { icon: Table, label: 'Excel', color: 'text-blue-600' },
-    'application/vnd.ms-excel': { icon: Table, label: 'Excel', color: 'text-blue-600' },
+    'text/csv': { icon: FileText, label: 'CSV', color: 'text-green-600' },
     'application/pdf': { icon: FileText, label: 'PDF', color: 'text-red-600' },
-    'text/plain': { icon: FileText, label: 'Text', color: 'text-gray-600' },
     'image/png': { icon: Image, label: 'PNG', color: 'text-purple-600' },
     'image/jpeg': { icon: Image, label: 'JPEG', color: 'text-purple-600' },
-    'image/jpg': { icon: Image, label: 'JPG', color: 'text-purple-600' },
-    'image/gif': { icon: Image, label: 'GIF', color: 'text-purple-600' },
-    'application/json': { icon: FileText, label: 'JSON', color: 'text-orange-600' },
-    'application/msword': { icon: FileText, label: 'Word', color: 'text-blue-600' },
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': { icon: FileText, label: 'Word', color: 'text-blue-600' }
+    'image/jpg': { icon: Image, label: 'JPG', color: 'text-purple-600' }
   }
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
+      // Check if file type is supported
+      if (!supportedTypes[file.type as keyof typeof supportedTypes]) {
+        toast({
+          title: 'Unsupported File Type',
+          description: 'Please upload only CSV, PDF, PNG, or JPEG files.',
+          variant: 'destructive',
+        })
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ''
+        }
+        return
+      }
+
       setSelectedFile(file)
       if (!name) {
         setName(file.name.split('.')[0])
@@ -52,29 +58,27 @@ export function FileUploadDialog({ open, onOpenChange, onUploadComplete }: FileU
     }
   }
 
-  const processSpreadsheetFile = async (file: File): Promise<{ data: any[], columns: string[] }> => {
+  const processCSVFile = async (file: File): Promise<{ data: any[], columns: string[] }> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
       reader.onload = (e) => {
         try {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer)
-          const workbook = XLSX.read(data, { type: 'array' })
-          const sheetName = workbook.SheetNames[0]
-          const worksheet = workbook.Sheets[sheetName]
-          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
+          const text = e.target?.result as string
+          const lines = text.split('\n').filter(line => line.trim())
           
-          if (jsonData.length === 0) {
+          if (lines.length === 0) {
             resolve({ data: [], columns: [] })
             return
           }
 
-          const headers = jsonData[0] as string[]
-          const rows = jsonData.slice(1) as any[][]
+          const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''))
+          const rows = lines.slice(1)
           
           const processedData = rows.map(row => {
+            const cells = row.split(',').map(cell => cell.trim().replace(/"/g, ''))
             const obj: any = {}
             headers.forEach((header, index) => {
-              obj[header] = row[index] || ''
+              obj[header] = cells[index] || ''
             })
             return obj
           })
@@ -85,7 +89,7 @@ export function FileUploadDialog({ open, onOpenChange, onUploadComplete }: FileU
         }
       }
       reader.onerror = () => reject(new Error('Failed to read file'))
-      reader.readAsArrayBuffer(file)
+      reader.readAsText(file)
     })
   }
 
@@ -121,10 +125,8 @@ export function FileUploadDialog({ open, onOpenChange, onUploadComplete }: FileU
       let sheetData: any = null
       let columns: string[] = []
 
-      if (selectedFile.type === 'text/csv' || 
-          selectedFile.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-          selectedFile.type === 'application/vnd.ms-excel') {
-        const processed = await processSpreadsheetFile(selectedFile)
+      if (selectedFile.type === 'text/csv') {
+        const processed = await processCSVFile(selectedFile)
         sheetData = processed.data
         columns = processed.columns
       }
@@ -219,11 +221,11 @@ export function FileUploadDialog({ open, onOpenChange, onUploadComplete }: FileU
               type="file"
               ref={fileInputRef}
               onChange={handleFileSelect}
-              accept=".csv,.xlsx,.xls,.pdf,.txt,.png,.jpg,.jpeg,.gif,.json,.doc,.docx"
+              accept=".csv,.pdf,.png,.jpg,.jpeg"
               className="border-red-200 focus:border-red-400"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Supported: CSV, Excel, PDF, Images, Text, JSON, Word documents
+              Supported: CSV, PDF, PNG, JPEG files only
             </p>
           </div>
 
@@ -250,7 +252,7 @@ export function FileUploadDialog({ open, onOpenChange, onUploadComplete }: FileU
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Enter sheet name..."
+              placeholder="Enter file name..."
               className="border-red-200 focus:border-red-400"
             />
           </div>
