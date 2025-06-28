@@ -234,10 +234,9 @@ export function Dashboard() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-3xl font-bold bg-gradient-to-r from-red-700 to-red-900 bg-clip-text text-transparent">
-              Algum Africa Capital LLP
+              Data Management System
             </h2>
-            <p className="text-lg font-medium text-red-700 mb-2">Data Management System</p>
-            <p className="text-gray-600">
+            <p className="text-gray-600 mt-2">
               {sheets.length} file{sheets.length !== 1 ? 's' : ''} available
               {profile && (
                 <span className="ml-2 text-sm">
@@ -327,7 +326,7 @@ export function Dashboard() {
                 sheet={sheet}
                 onView={() => handleViewSheet(sheet)}
                 onEdit={profile?.is_admin ? () => handleViewSheet(sheet) : undefined}
-                onDownload={profile?.can_download || profile?.is_admin ? handleDownloadSheet : undefined}
+                onDownload={handleDownloadSheet}
               />
             ))}
           </div>

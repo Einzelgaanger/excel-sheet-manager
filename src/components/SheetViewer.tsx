@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,6 +15,7 @@ import { ArrowLeft, Save, X, Plus, Trash2, Search, Download } from 'lucide-react
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from '@/hooks/use-toast'
+import { Header } from './Header'
 
 type Sheet = {
   id: string
@@ -176,13 +178,29 @@ export function SheetViewer({ sheet, onClose, onUpdate }: SheetViewerProps) {
     }
 
     try {
-      const csvContent = convertToCSV(data, columns)
-      downloadCSV(csvContent, `${sheet.name}.csv`)
-      
-      toast({
-        title: 'Download Started',
-        description: `${sheet.name} is being downloaded as CSV.`,
-      })
+      if (isImage || isPDF) {
+        // For images and PDFs, download the original file
+        if (sheet.file_url) {
+          const link = document.createElement('a')
+          link.href = sheet.file_url
+          link.download = sheet.name
+          link.click()
+          
+          toast({
+            title: 'Download Started',
+            description: `${sheet.name} is being downloaded.`,
+          })
+        }
+      } else if (isSpreadsheet) {
+        // For CSV files, download as CSV
+        const csvContent = convertToCSV(data, columns)
+        downloadCSV(csvContent, `${sheet.name}.csv`)
+        
+        toast({
+          title: 'Download Started',
+          description: `${sheet.name} is being downloaded as CSV.`,
+        })
+      }
     } catch (error) {
       console.error('Download error:', error)
       toast({
@@ -372,6 +390,8 @@ export function SheetViewer({ sheet, onClose, onUpdate }: SheetViewerProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Header />
+      
       <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">

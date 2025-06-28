@@ -85,6 +85,37 @@ export function SheetCard({ sheet, onView, onEdit, onDownload }: SheetCardProps)
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
   }
 
+  const isSpreadsheet = sheet.file_type === 'text/csv' || 
+                       sheet.file_type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+                       sheet.file_type === 'application/vnd.ms-excel'
+
+  const isImage = sheet.file_type?.includes('image')
+  const isPDF = sheet.file_type?.includes('pdf')
+
+  const handleDirectDownload = () => {
+    if (!profile?.can_download && !profile?.is_admin) {
+      toast({
+        title: 'Access Denied',
+        description: 'You do not have permission to download files.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (isImage || isPDF) {
+      // For images and PDFs, download the original file
+      if (sheet.file_url) {
+        const link = document.createElement('a')
+        link.href = sheet.file_url
+        link.download = sheet.name
+        link.click()
+      }
+    } else {
+      // For CSV, use the default CSV download
+      onDownload(sheet, 'csv')
+    }
+  }
+
   const downloadFormats = [
     { format: 'csv', label: 'CSV', icon: FileSpreadsheet },
     { format: 'xlsx', label: 'Excel', icon: FileSpreadsheet },
@@ -168,33 +199,47 @@ export function SheetCard({ sheet, onView, onEdit, onDownload }: SheetCardProps)
               </Button>
 
               {(profile?.can_download || profile?.is_admin) && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                <>
+                  {isSpreadsheet ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="hover:bg-green-50 hover:border-green-300 hover:text-green-700 border-green-200"
+                        >
+                          <Download className="h-4 w-4 mr-1" />
+                          <ChevronDown className="h-3 w-3" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-32">
+                        {downloadFormats.map(({ format, label, icon: Icon }) => (
+                          <DropdownMenuItem
+                            key={format}
+                            onClick={() => onDownload(sheet, format)}
+                            className="flex items-center gap-2 cursor-pointer"
+                          >
+                            <Icon className="h-4 w-4" />
+                            {label}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : (
                     <Button
+                      onClick={handleDirectDownload}
                       size="sm"
                       variant="outline"
                       className="hover:bg-green-50 hover:border-green-300 hover:text-green-700 border-green-200"
                     >
                       <Download className="h-4 w-4 mr-1" />
-                      <ChevronDown className="h-3 w-3" />
+                      <span className="text-xs">Download</span>
                     </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-32">
-                    {downloadFormats.map(({ format, label, icon: Icon }) => (
-                      <DropdownMenuItem
-                        key={format}
-                        onClick={() => onDownload(sheet, format)}
-                        className="flex items-center gap-2 cursor-pointer"
-                      >
-                        <Icon className="h-4 w-4" />
-                        {label}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                  )}
+                </>
               )}
 
-              {profile?.is_admin && onEdit && (
+              {profile?.is_admin && onEdit && isSpreadsheet && (
                 <Button
                   onClick={() => onEdit(sheet)}
                   size="sm"
