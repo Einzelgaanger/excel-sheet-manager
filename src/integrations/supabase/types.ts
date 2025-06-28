@@ -9,6 +9,88 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          action_type: string
+          created_at: string
+          details: string | null
+          id: string
+          sheet_id: string | null
+          sheet_name: string | null
+          user_email: string
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          details?: string | null
+          id?: string
+          sheet_id?: string | null
+          sheet_name?: string | null
+          user_email: string
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          details?: string | null
+          id?: string
+          sheet_id?: string | null
+          sheet_name?: string | null
+          user_email?: string
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_logs_sheet_id_fkey"
+            columns: ["sheet_id"]
+            isOneToOne: false
+            referencedRelation: "sheets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comments: {
+        Row: {
+          comment_text: string
+          created_at: string
+          id: string
+          sheet_id: string
+          user_email: string
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          comment_text: string
+          created_at?: string
+          id?: string
+          sheet_id: string
+          user_email: string
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          comment_text?: string
+          created_at?: string
+          id?: string
+          sheet_id?: string
+          user_email?: string
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_sheet_id_fkey"
+            columns: ["sheet_id"]
+            isOneToOne: false
+            referencedRelation: "sheets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sheets: {
         Row: {
           columns: string[] | null
@@ -16,6 +98,9 @@ export type Database = {
           created_by: string
           data: Json | null
           description: string | null
+          file_size: number | null
+          file_type: string | null
+          file_url: string | null
           id: string
           name: string
           updated_at: string | null
@@ -26,6 +111,9 @@ export type Database = {
           created_by: string
           data?: Json | null
           description?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string | null
           id?: string
           name: string
           updated_at?: string | null
@@ -36,6 +124,9 @@ export type Database = {
           created_by?: string
           data?: Json | null
           description?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string | null
           id?: string
           name?: string
           updated_at?: string | null
