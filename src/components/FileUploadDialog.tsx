@@ -100,13 +100,11 @@ export function FileUploadDialog({ open, onOpenChange, onUploadComplete }: FileU
       const fileExt = selectedFile.name.split('.').pop()
       const fileName = `${profile.id}/${Date.now()}-${selectedFile.name}`
       
+      setProgress(10)
+      
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('sheet-files')
-        .upload(fileName, selectedFile, {
-          onUploadProgress: (progress) => {
-            setProgress((progress.loaded / progress.total) * 50) // First 50% for upload
-          }
-        })
+        .upload(fileName, selectedFile)
 
       if (uploadError) throw uploadError
 
