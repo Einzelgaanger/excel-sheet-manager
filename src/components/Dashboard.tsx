@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -199,12 +198,12 @@ export function Dashboard() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-yellow-50">
         <Header />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-6">
+        <main className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-8">
+          <div className="mb-4 sm:mb-6">
             <Button
               onClick={() => setShowActivityLogs(false)}
               variant="outline"
-              className="mb-4 border-red-200 text-red-700 hover:bg-red-50"
+              className="mb-4 border-red-200 text-red-700 hover:bg-red-50 text-sm"
             >
               ← Back to Dashboard
             </Button>
@@ -230,63 +229,69 @@ export function Dashboard() {
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-yellow-50">
       <Header />
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-red-700 to-red-900 bg-clip-text text-transparent">
+      <main className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-8">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-6 sm:mb-8 gap-4">
+          <div className="flex-1">
+            <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-red-700 to-red-900 bg-clip-text text-transparent">
               Data Management System
             </h2>
-            <p className="text-gray-600 mt-2">
-              {sheets.length} file{sheets.length !== 1 ? 's' : ''} available
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-gray-600 mt-2">
+              <span className="text-sm sm:text-base">
+                {sheets.length} file{sheets.length !== 1 ? 's' : ''} available
+              </span>
               {profile && (
-                <span className="ml-2 text-sm">
-                  • Role: <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                <div className="flex items-center gap-2">
+                  <span className="hidden sm:inline text-sm">•</span>
+                  <span className="text-xs sm:text-sm">Role:</span>
+                  <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs">
                     {profile.is_admin ? 'Admin' : profile.can_download ? 'Viewer + Downloader' : 'Viewer'}
                   </Badge>
-                </span>
+                </div>
               )}
-            </p>
+            </div>
           </div>
           
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             {profile?.is_admin && (
               <>
                 <Button
                   onClick={() => setShowActivityLogs(true)}
                   variant="outline"
-                  className="border-red-200 text-red-700 hover:bg-red-50"
+                  className="border-red-200 text-red-700 hover:bg-red-50 text-sm w-full sm:w-auto"
                 >
                   <Activity className="h-4 w-4 mr-2" />
-                  Activity Logs
+                  <span className="sm:hidden">Activity</span>
+                  <span className="hidden sm:inline">Activity Logs</span>
                 </Button>
                 <Button
                   onClick={() => setShowUploadDialog(true)}
-                  className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-lg"
+                  className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-lg text-sm w-full sm:w-auto"
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Upload File
+                  <span className="sm:hidden">Upload</span>
+                  <span className="hidden sm:inline">Upload File</span>
                 </Button>
               </>
             )}
           </div>
         </div>
 
-        <div className="mb-6">
-          <div className="relative max-w-md">
+        <div className="mb-4 sm:mb-6">
+          <div className="relative max-w-full sm:max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
               placeholder="Search files..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 border-red-200 focus:border-red-400 focus:ring-red-200"
+              className="pl-10 border-red-200 focus:border-red-400 focus:ring-red-200 text-sm"
             />
           </div>
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-white rounded-lg p-6 animate-pulse shadow-md border border-red-100">
+              <div key={i} className="bg-white rounded-lg p-4 sm:p-6 animate-pulse shadow-md border border-red-100 aspect-[4/3]">
                 <div className="h-4 bg-red-100 rounded mb-2"></div>
                 <div className="h-3 bg-red-100 rounded mb-4"></div>
                 <div className="flex space-x-2">
@@ -297,12 +302,12 @@ export function Dashboard() {
             ))}
           </div>
         ) : filteredSheets.length === 0 ? (
-          <div className="text-center py-12">
-            <FileSpreadsheet className="h-16 w-16 mx-auto text-red-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <div className="text-center py-8 sm:py-12 px-4">
+            <FileSpreadsheet className="h-12 w-12 sm:h-16 sm:w-16 mx-auto text-red-400 mb-4" />
+            <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
               {searchQuery ? 'No files found' : 'No files available'}
             </h3>
-            <p className="text-gray-600 max-w-sm mx-auto">
+            <p className="text-gray-600 text-sm sm:text-base max-w-sm mx-auto mb-4">
               {searchQuery 
                 ? 'Try adjusting your search terms or clear the search to see all files.'
                 : 'Get started by uploading your first file.'
@@ -311,7 +316,7 @@ export function Dashboard() {
             {!searchQuery && profile?.is_admin && (
               <Button
                 onClick={() => setShowUploadDialog(true)}
-                className="mt-4 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white"
+                className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white text-sm"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Upload First File
@@ -319,7 +324,7 @@ export function Dashboard() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filteredSheets.map((sheet) => (
               <SheetCard
                 key={sheet.id}

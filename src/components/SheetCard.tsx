@@ -1,4 +1,3 @@
-
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -122,7 +121,7 @@ export function SheetCard({ sheet, onView, onEdit, onDownload }: SheetCardProps)
     { format: 'json', label: 'JSON', icon: FileText },
   ]
 
-  const truncateTitle = (title: string, maxLength: number = 40) => {
+  const truncateTitle = (title: string, maxLength: number = 30) => {
     if (title.length <= maxLength) return title
     return title.substring(0, maxLength) + '...'
   }
@@ -131,21 +130,21 @@ export function SheetCard({ sheet, onView, onEdit, onDownload }: SheetCardProps)
 
   return (
     <>
-      <Card className="group hover:shadow-xl transition-all duration-300 border-2 border-red-100 hover:border-red-300 bg-gradient-to-br from-white to-red-50">
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center space-x-3 flex-1">
-              <div className="p-3 bg-gradient-to-br from-red-100 to-red-200 rounded-xl group-hover:from-red-200 group-hover:to-red-300 transition-colors">
-                <IconComponent className="h-6 w-6 text-red-700" />
+      <Card className="group hover:shadow-xl transition-all duration-300 border-2 border-red-100 hover:border-red-300 bg-gradient-to-br from-white to-red-50 h-full flex flex-col">
+        <CardHeader className="pb-3 flex-shrink-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start space-x-2 sm:space-x-3 flex-1 min-w-0">
+              <div className="p-2 sm:p-3 bg-gradient-to-br from-red-100 to-red-200 rounded-xl group-hover:from-red-200 group-hover:to-red-300 transition-colors flex-shrink-0">
+                <IconComponent className="h-4 w-4 sm:h-6 sm:w-6 text-red-700" />
               </div>
               <div className="flex-1 min-w-0">
                 <CardTitle 
-                  className="text-lg font-semibold text-gray-900 group-hover:text-red-700 transition-colors leading-tight"
+                  className="text-sm sm:text-lg font-semibold text-gray-900 group-hover:text-red-700 transition-colors leading-tight break-words"
                   title={sheet.name}
                 >
                   {truncateTitle(sheet.name)}
                 </CardTitle>
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-1">
                   <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs">
                     {getFileTypeLabel()}
                   </Badge>
@@ -160,42 +159,42 @@ export function SheetCard({ sheet, onView, onEdit, onDownload }: SheetCardProps)
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center space-x-2 text-gray-600">
-              <User className="h-4 w-4" />
-              <span className="truncate max-w-24" title={creatorName}>
+        <CardContent className="space-y-3 sm:space-y-4 flex-1 flex flex-col justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-sm">
+            <div className="flex items-center space-x-2 text-gray-600 min-w-0">
+              <User className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+              <span className="truncate text-xs sm:text-sm" title={creatorName}>
                 {creatorName}
               </span>
             </div>
             <div className="flex items-center space-x-2 text-gray-500">
-              <Calendar className="h-4 w-4" />
-              <span className="text-xs">
+              <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+              <span className="text-xs whitespace-nowrap">
                 {formatDistanceToNow(new Date(sheet.updated_at), { addSuffix: true })}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <Button
               onClick={() => setShowComments(true)}
               variant="ghost"
               size="sm"
-              className="text-red-600 hover:text-red-700 hover:bg-red-50 px-2"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 px-2 text-xs sm:text-sm"
             >
-              <MessageCircle className="h-4 w-4 mr-1" />
-              <span className="text-xs">{commentsCount}</span>
+              <MessageCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+              <span>{commentsCount}</span>
             </Button>
             
-            <div className="flex items-center space-x-1">
+            <div className="flex items-center space-x-1 flex-wrap">
               <Button
                 onClick={() => onView(sheet)}
                 size="sm"
                 variant="outline"
-                className="hover:bg-red-50 hover:border-red-300 hover:text-red-700 border-red-200"
+                className="hover:bg-red-50 hover:border-red-300 hover:text-red-700 border-red-200 text-xs sm:text-sm px-2 sm:px-3"
               >
-                <Eye className="h-4 w-4 mr-1" />
-                <span className="text-xs">View</span>
+                <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                <span className="hidden sm:inline">View</span>
               </Button>
 
               {(profile?.can_download || profile?.is_admin) && (
@@ -206,20 +205,20 @@ export function SheetCard({ sheet, onView, onEdit, onDownload }: SheetCardProps)
                         <Button
                           size="sm"
                           variant="outline"
-                          className="hover:bg-green-50 hover:border-green-300 hover:text-green-700 border-green-200"
+                          className="hover:bg-green-50 hover:border-green-300 hover:text-green-700 border-green-200 text-xs sm:text-sm px-2 sm:px-3"
                         >
-                          <Download className="h-4 w-4 mr-1" />
-                          <ChevronDown className="h-3 w-3" />
+                          <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                          <ChevronDown className="h-2 w-2 sm:h-3 sm:w-3" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-32">
+                      <DropdownMenuContent align="end" className="w-28 sm:w-32">
                         {downloadFormats.map(({ format, label, icon: Icon }) => (
                           <DropdownMenuItem
                             key={format}
                             onClick={() => onDownload(sheet, format)}
-                            className="flex items-center gap-2 cursor-pointer"
+                            className="flex items-center gap-2 cursor-pointer text-xs sm:text-sm"
                           >
-                            <Icon className="h-4 w-4" />
+                            <Icon className="h-3 w-3 sm:h-4 sm:w-4" />
                             {label}
                           </DropdownMenuItem>
                         ))}
@@ -230,10 +229,10 @@ export function SheetCard({ sheet, onView, onEdit, onDownload }: SheetCardProps)
                       onClick={handleDirectDownload}
                       size="sm"
                       variant="outline"
-                      className="hover:bg-green-50 hover:border-green-300 hover:text-green-700 border-green-200"
+                      className="hover:bg-green-50 hover:border-green-300 hover:text-green-700 border-green-200 text-xs sm:text-sm px-2 sm:px-3"
                     >
-                      <Download className="h-4 w-4 mr-1" />
-                      <span className="text-xs">Download</span>
+                      <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                      <span className="hidden sm:inline">Download</span>
                     </Button>
                   )}
                 </>
@@ -244,10 +243,10 @@ export function SheetCard({ sheet, onView, onEdit, onDownload }: SheetCardProps)
                   onClick={() => onEdit(sheet)}
                   size="sm"
                   variant="outline"
-                  className="hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 border-orange-200"
+                  className="hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 border-orange-200 text-xs sm:text-sm px-2 sm:px-3"
                 >
-                  <Edit className="h-4 w-4 mr-1" />
-                  <span className="text-xs">Edit</span>
+                  <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                  <span className="hidden sm:inline">Edit</span>
                 </Button>
               )}
             </div>
