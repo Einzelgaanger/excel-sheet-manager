@@ -147,24 +147,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      // Clear local state immediately
-      setUser(null)
-      setProfile(null)
-      setLoading(false)
-      
       // Sign out from Supabase
       const { error } = await supabase.auth.signOut()
       if (error) {
         console.error('Error signing out:', error)
       }
-      
-      // Force redirect to home page
-      window.location.href = '/'
     } catch (error) {
       console.error('Error during sign out:', error)
-      // Force redirect even if there's an error
-      window.location.href = '/'
     }
+    // The auth state change listener will automatically handle the state updates
+    // and redirect to login page when user becomes null
   }
 
   return (
