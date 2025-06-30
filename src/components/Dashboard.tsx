@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -7,9 +8,10 @@ import { SheetCard } from './SheetCard'
 import { SheetViewer } from './SheetViewer'
 import { FileUploadDialog } from './FileUploadDialog'
 import { ActivityLogs } from './ActivityLogs'
+import { BulkDownloadDialog } from './BulkDownloadDialog'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/integrations/supabase/client'
-import { Search, Plus, FileSpreadsheet, Activity } from 'lucide-react'
+import { Search, Plus, FileSpreadsheet, Activity, Download } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 
 type Sheet = {
@@ -33,6 +35,7 @@ export function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSheet, setSelectedSheet] = useState<Sheet | null>(null)
   const [showUploadDialog, setShowUploadDialog] = useState(false)
+  const [showBulkDownloadDialog, setShowBulkDownloadDialog] = useState(false)
   const [showActivityLogs, setShowActivityLogs] = useState(false)
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(true)
@@ -252,6 +255,17 @@ export function Dashboard() {
           </div>
           
           <div className="flex flex-col sm:flex-row gap-2">
+            {(profile?.can_download || profile?.is_admin) && sheets.length > 0 && (
+              <Button
+                onClick={() => setShowBulkDownloadDialog(true)}
+                variant="outline"
+                className="border-red-200 text-red-700 hover:bg-red-50 text-sm w-full sm:w-auto"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                <span className="sm:hidden">Bulk Download</span>
+                <span className="hidden sm:inline">Bulk Download</span>
+              </Button>
+            )}
             {profile?.is_admin && (
               <>
                 <Button
@@ -342,6 +356,13 @@ export function Dashboard() {
         open={showUploadDialog}
         onOpenChange={setShowUploadDialog}
         onUploadComplete={fetchSheets}
+      />
+
+      <BulkDownloadDialog
+        open={showBulkDownloadDialog}
+        onOpenChange={setShowBulkDownloadDialog}
+        sheets={sheets}
+        userProfile={profile}
       />
     </div>
   )
