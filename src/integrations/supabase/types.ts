@@ -15,6 +15,7 @@ export type Database = {
           created_at: string
           details: string | null
           id: string
+          project_id: string | null
           sheet_id: string | null
           sheet_name: string | null
           user_email: string
@@ -26,6 +27,7 @@ export type Database = {
           created_at?: string
           details?: string | null
           id?: string
+          project_id?: string | null
           sheet_id?: string | null
           sheet_name?: string | null
           user_email: string
@@ -37,6 +39,7 @@ export type Database = {
           created_at?: string
           details?: string | null
           id?: string
+          project_id?: string | null
           sheet_id?: string | null
           sheet_name?: string | null
           user_email?: string
@@ -45,10 +48,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "activity_logs_sheet_id_fkey"
-            columns: ["sheet_id"]
+            foreignKeyName: "activity_logs_project_id_fkey"
+            columns: ["project_id"]
             isOneToOne: false
-            referencedRelation: "sheets"
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -58,6 +61,7 @@ export type Database = {
           comment_text: string
           created_at: string
           id: string
+          project_id: string | null
           sheet_id: string
           user_email: string
           user_id: string
@@ -67,6 +71,7 @@ export type Database = {
           comment_text: string
           created_at?: string
           id?: string
+          project_id?: string | null
           sheet_id: string
           user_email: string
           user_id: string
@@ -76,6 +81,7 @@ export type Database = {
           comment_text?: string
           created_at?: string
           id?: string
+          project_id?: string | null
           sheet_id?: string
           user_email?: string
           user_id?: string
@@ -83,10 +89,145 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "comments_sheet_id_fkey"
-            columns: ["sheet_id"]
+            foreignKeyName: "comments_project_id_fkey"
+            columns: ["project_id"]
             isOneToOne: false
-            referencedRelation: "sheets"
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          project_id: string
+          role: string
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          project_id: string
+          role?: string
+          token: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          project_id?: string
+          role?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_invitations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_members: {
+        Row: {
+          id: string
+          invited_by: string
+          joined_at: string
+          project_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          invited_by: string
+          joined_at?: string
+          project_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          invited_by?: string
+          joined_at?: string
+          project_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_members_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -103,6 +244,7 @@ export type Database = {
           file_url: string | null
           id: string
           name: string
+          project_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -116,6 +258,7 @@ export type Database = {
           file_url?: string | null
           id?: string
           name: string
+          project_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -129,9 +272,18 @@ export type Database = {
           file_url?: string | null
           id?: string
           name?: string
+          project_id?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sheets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_profiles: {
         Row: {

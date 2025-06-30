@@ -1,9 +1,9 @@
 
 import { useAuth } from "@/hooks/useAuth";
 import { LoginPage } from "@/components/LoginPage";
-import { ProjectDashboard } from "@/components/ProjectDashboard";
+import { Dashboard } from "@/components/Dashboard";
 
-const Index = () => {
+const ProjectPage = () => {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -17,7 +17,7 @@ const Index = () => {
     );
   }
 
-  return user ? <ProjectDashboard /> : <LoginPage />;
+  return user ? <Dashboard /> : <LoginPage />;
 };
 
-export default Index;
+export default ProjectPage;

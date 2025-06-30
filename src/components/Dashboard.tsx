@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,10 +8,12 @@ import { SheetViewer } from './SheetViewer'
 import { FileUploadDialog } from './FileUploadDialog'
 import { ActivityLogs } from './ActivityLogs'
 import { BulkDownloadDialog } from './BulkDownloadDialog'
+import { ProjectMembersDialog } from './ProjectMembersDialog'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/integrations/supabase/client'
-import { Search, Plus, FileSpreadsheet, Activity, Download } from 'lucide-react'
+import { Search, Plus, FileSpreadsheet, Activity, Download, Users, ArrowLeft } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
+import { useParams, useNavigate } from 'react-router-dom'
 
 type Sheet = {
   id: string
@@ -26,28 +27,98 @@ type Sheet = {
   file_type: string
   file_url: string | null
   file_size: number | null
+  project_id: string
+}
+
+type Project = {
+  id: string
+  name: string
+  description: string | null
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
+type ProjectMember = {
+  id: string
+  role: string
+  user_id: string
+  user_profiles: {
+    full_name: string | null
+    email: string
+  }
 }
 
 export function Dashboard() {
   const { profile } = useAuth()
+  const { projectId } = useParams()
+  const navigate = useNavigate()
+  const [project, setProject] = useState<Project | null>(null)
+  const [userRole, setUserRole] = useState<string>('')
   const [sheets, setSheets] = useState<Sheet[]>([])
   const [filteredSheets, setFilteredSheets] = useState<Sheet[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSheet, setSelectedSheet] = useState<Sheet | null>(null)
   const [showUploadDialog, setShowUploadDialog] = useState(false)
   const [showBulkDownloadDialog, setShowBulkDownloadDialog] = useState(false)
+  const [showMembersDialog, setShowMembersDialog] = useState(false)
   const [showActivityLogs, setShowActivityLogs] = useState(false)
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(true)
 
+  const fetchProject = useCallback(async () => {
+    if (!mounted || !profile || !projectId) return
+    
+    try {
+      // Check if user is a member of this project and get their role
+      const { data: memberData, error: memberError } = await supabase
+        .from('project_members')
+        .select(`
+          role,
+          project:projects (
+            id,
+            name,
+            description,
+            created_by,
+            created_at,
+            updated_at
+          )
+        `)
+        .eq('project_id', projectId)
+        .eq('user_id', profile.id)
+        .single()
+
+      if (memberError) {
+        toast({
+          title: 'Access Denied',
+          description: 'You do not have access to this project.',
+          variant: 'destructive',
+        })
+        navigate('/')
+        return
+      }
+
+      if (mounted) {
+        setProject(memberData.project)
+        setUserRole(memberData.role)
+      }
+    } catch (error) {
+      console.error('Error fetching project:', error)
+      if (mounted) {
+        navigate('/')
+      }
+    }
+  }, [mounted, profile, projectId, navigate])
+
   const fetchSheets = useCallback(async () => {
-    if (!mounted) return
+    if (!mounted || !projectId) return
     
     try {
       setLoading(true)
       const { data, error } = await supabase
         .from('sheets')
         .select('*')
+        .eq('project_id', projectId)
         .order('updated_at', { ascending: false })
 
       if (error) throw error
@@ -70,7 +141,7 @@ export function Dashboard() {
         setLoading(false)
       }
     }
-  }, [mounted])
+  }, [mounted, projectId])
 
   useEffect(() => {
     setMounted(true)
@@ -78,10 +149,11 @@ export function Dashboard() {
   }, [])
 
   useEffect(() => {
-    if (profile && mounted) {
+    if (profile && mounted && projectId) {
+      fetchProject()
       fetchSheets()
     }
-  }, [profile, fetchSheets, mounted])
+  }, [profile, fetchProject, fetchSheets, mounted, projectId])
 
   useEffect(() => {
     // Filter sheets based on search query
@@ -196,19 +268,23 @@ export function Dashboard() {
     URL.revokeObjectURL(url)
   }
 
-  // Show activity logs for admins
+  const canEdit = userRole === 'admin' || userRole === 'editor'
+  const canManage = userRole === 'admin'
+
+  // Show activity logs for project admins
   if (showActivityLogs) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-yellow-50">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
         <Header />
         <main className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-8">
           <div className="mb-4 sm:mb-6">
             <Button
               onClick={() => setShowActivityLogs(false)}
               variant="outline"
-              className="mb-4 border-red-200 text-red-700 hover:bg-red-50 text-sm"
+              className="mb-4 border-blue-200 text-blue-700 hover:bg-blue-50 text-sm"
             >
-              ← Back to Dashboard
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Project
             </Button>
           </div>
           <ActivityLogs />
@@ -228,64 +304,98 @@ export function Dashboard() {
     )
   }
 
+  if (!project) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+        <Header />
+        <main className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-8">
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading project...</p>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-yellow-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       <Header />
       
       <main className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-8">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-6 sm:mb-8 gap-4">
           <div className="flex-1">
-            <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-red-700 to-red-900 bg-clip-text text-transparent">
-              Data Management System
-            </h2>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-gray-600 mt-2">
+            <div className="flex items-center gap-4 mb-2">
+              <Button
+                onClick={() => navigate('/')}
+                variant="ghost"
+                size="sm"
+                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-900 bg-clip-text text-transparent">
+                {project.name}
+              </h2>
+            </div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-gray-600 ml-12">
               <span className="text-sm sm:text-base">
-                {sheets.length} file{sheets.length !== 1 ? 's' : ''} available
+                {sheets.length} file{sheets.length !== 1 ? 's' : ''}
               </span>
               {profile && (
                 <div className="flex items-center gap-2">
                   <span className="hidden sm:inline text-sm">•</span>
                   <span className="text-xs sm:text-sm">Role:</span>
-                  <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs">
-                    {profile.is_admin ? 'Admin' : profile.can_download ? 'Viewer + Downloader' : 'Viewer'}
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs capitalize">
+                    {userRole}
                   </Badge>
                 </div>
               )}
             </div>
+            {project.description && (
+              <p className="text-sm text-gray-600 mt-2 ml-12">{project.description}</p>
+            )}
           </div>
           
           <div className="flex flex-col sm:flex-row gap-2">
-            {(profile?.can_download || profile?.is_admin) && sheets.length > 0 && (
-              <Button
-                onClick={() => setShowBulkDownloadDialog(true)}
-                variant="outline"
-                className="border-red-200 text-red-700 hover:bg-red-50 text-sm w-full sm:w-auto"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                <span className="sm:hidden">Bulk Download</span>
-                <span className="hidden sm:inline">Bulk Download</span>
-              </Button>
-            )}
-            {profile?.is_admin && (
+            <Button
+              onClick={() => setShowMembersDialog(true)}
+              variant="outline"
+              className="border-blue-200 text-blue-700 hover:bg-blue-50 text-sm w-full sm:w-auto"
+            >
+              <Users className="h-4 w-4 mr-2" />
+              Members
+            </Button>
+            {canManage && (
               <>
                 <Button
                   onClick={() => setShowActivityLogs(true)}
                   variant="outline"
-                  className="border-red-200 text-red-700 hover:bg-red-50 text-sm w-full sm:w-auto"
+                  className="border-blue-200 text-blue-700 hover:bg-blue-50 text-sm w-full sm:w-auto"
                 >
                   <Activity className="h-4 w-4 mr-2" />
-                  <span className="sm:hidden">Activity</span>
-                  <span className="hidden sm:inline">Activity Logs</span>
+                  Activity
                 </Button>
-                <Button
-                  onClick={() => setShowUploadDialog(true)}
-                  className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-lg text-sm w-full sm:w-auto"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  <span className="sm:hidden">Upload</span>
-                  <span className="hidden sm:inline">Upload File</span>
-                </Button>
+                {sheets.length > 0 && (
+                  <Button
+                    onClick={() => setShowBulkDownloadDialog(true)}
+                    variant="outline"
+                    className="border-blue-200 text-blue-700 hover:bg-blue-50 text-sm w-full sm:w-auto"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download
+                  </Button>
+                )}
               </>
+            )}
+            {canEdit && (
+              <Button
+                onClick={() => setShowUploadDialog(true)}
+                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg text-sm w-full sm:w-auto"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Upload File
+              </Button>
             )}
           </div>
         </div>
@@ -297,7 +407,7 @@ export function Dashboard() {
               placeholder="Search files..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 border-red-200 focus:border-red-400 focus:ring-red-200 text-sm"
+              className="pl-10 border-blue-200 focus:border-blue-400 focus:ring-blue-200 text-sm"
             />
           </div>
         </div>
@@ -305,32 +415,32 @@ export function Dashboard() {
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-white rounded-lg p-4 sm:p-6 animate-pulse shadow-md border border-red-100 aspect-[4/3]">
-                <div className="h-4 bg-red-100 rounded mb-2"></div>
-                <div className="h-3 bg-red-100 rounded mb-4"></div>
+              <div key={i} className="bg-white rounded-lg p-4 sm:p-6 animate-pulse shadow-md border border-blue-100 aspect-[4/3]">
+                <div className="h-4 bg-blue-100 rounded mb-2"></div>
+                <div className="h-3 bg-blue-100 rounded mb-4"></div>
                 <div className="flex space-x-2">
-                  <div className="h-8 bg-red-100 rounded flex-1"></div>
-                  <div className="h-8 bg-red-100 rounded flex-1"></div>
+                  <div className="h-8 bg-blue-100 rounded flex-1"></div>
+                  <div className="h-8 bg-blue-100 rounded flex-1"></div>
                 </div>
               </div>
             ))}
           </div>
         ) : filteredSheets.length === 0 ? (
           <div className="text-center py-8 sm:py-12 px-4">
-            <FileSpreadsheet className="h-12 w-12 sm:h-16 sm:w-16 mx-auto text-red-400 mb-4" />
+            <FileSpreadsheet className="h-12 w-12 sm:h-16 sm:w-16 mx-auto text-blue-400 mb-4" />
             <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
-              {searchQuery ? 'No files found' : 'No files available'}
+              {searchQuery ? 'No files found' : 'No files yet'}
             </h3>
             <p className="text-gray-600 text-sm sm:text-base max-w-sm mx-auto mb-4">
               {searchQuery 
                 ? 'Try adjusting your search terms or clear the search to see all files.'
-                : 'Get started by uploading your first file.'
+                : 'Upload your first file to start collaborating.'
               }
             </p>
-            {!searchQuery && profile?.is_admin && (
+            {!searchQuery && canEdit && (
               <Button
                 onClick={() => setShowUploadDialog(true)}
-                className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white text-sm"
+                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Upload First File
@@ -344,7 +454,7 @@ export function Dashboard() {
                 key={sheet.id}
                 sheet={sheet}
                 onView={() => handleViewSheet(sheet)}
-                onEdit={profile?.is_admin ? () => handleViewSheet(sheet) : undefined}
+                onEdit={canEdit ? () => handleViewSheet(sheet) : undefined}
                 onDownload={handleDownloadSheet}
               />
             ))}
@@ -356,6 +466,7 @@ export function Dashboard() {
         open={showUploadDialog}
         onOpenChange={setShowUploadDialog}
         onUploadComplete={fetchSheets}
+        projectId={projectId}
       />
 
       <BulkDownloadDialog
@@ -363,6 +474,13 @@ export function Dashboard() {
         onOpenChange={setShowBulkDownloadDialog}
         sheets={sheets}
         userProfile={profile}
+      />
+
+      <ProjectMembersDialog
+        open={showMembersDialog}
+        onOpenChange={setShowMembersDialog}
+        projectId={projectId!}
+        userRole={userRole}
       />
     </div>
   )

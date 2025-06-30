@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/hooks/useAuth'
-import { FileSpreadsheet, Shield, Users, BarChart3 } from 'lucide-react'
+import { FileSpreadsheet, Shield, Users, BarChart3, Database, GitBranch } from 'lucide-react'
 
 export function LoginPage() {
   const { signInWithGoogle } = useAuth()
@@ -21,19 +21,20 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-yellow-50 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b border-red-100 shadow-sm">
+      <header className="bg-white border-b border-blue-100 shadow-sm">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
           <div className="flex items-center justify-center sm:justify-start h-14 sm:h-16">
             <div className="flex items-center space-x-2 sm:space-x-4">
-              <img 
-                src="/algumlogo.svg" 
-                alt="Algum Africa Capital LLP" 
-                className="h-8 w-auto sm:h-10"
-              />
-              <div className="text-center sm:text-left hidden sm:block">
-                <p className="text-xs sm:text-sm text-gray-600">Data Management System</p>
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center">
+                <Database className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+              </div>
+              <div className="text-center sm:text-left">
+                <h1 className="text-base sm:text-xl font-bold bg-gradient-to-r from-blue-700 to-blue-900 bg-clip-text text-transparent">
+                  DataCollab
+                </h1>
+                <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">Open Source Data Platform</p>
               </div>
             </div>
           </div>
@@ -44,34 +45,34 @@ export function LoginPage() {
       <main className="flex-1 flex items-center justify-center px-3 sm:px-4 py-8 sm:py-12">
         <div className="w-full max-w-6xl">
           <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-red-700 to-red-900 bg-clip-text text-transparent mb-3 sm:mb-4">
-              Welcome to Algum Africa Capital
+            <h2 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-blue-700 to-blue-900 bg-clip-text text-transparent mb-3 sm:mb-4">
+              Welcome to DataCollab
             </h2>
             <p className="text-base sm:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed px-4">
-              Secure data management platform for financial analytics and business intelligence
+              Open source collaborative data management platform for teams and organizations
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 mb-8 sm:mb-12">
             {/* Login Card */}
-            <Card className="border-2 border-red-100 shadow-xl bg-gradient-to-br from-white to-red-50">
+            <Card className="border-2 border-blue-100 shadow-xl bg-gradient-to-br from-white to-blue-50">
               <CardHeader className="text-center pb-4 sm:pb-6">
                 <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
-                  Access Your Dashboard
+                  Start Collaborating
                 </CardTitle>
                 <CardDescription className="text-sm sm:text-base text-gray-600">
-                  Sign in with your Google account to access the data management system
+                  Sign in with your Google account to create projects and collaborate with your team
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 sm:space-y-6">
-                <div className="flex items-center justify-center space-x-2 text-sm text-gray-600 bg-red-50 p-3 rounded-lg">
-                  <Shield className="h-4 w-4 text-red-600" />
+                <div className="flex items-center justify-center space-x-2 text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
+                  <Shield className="h-4 w-4 text-blue-600" />
                   <span>Secure authentication with Google OAuth</span>
                 </div>
                 <Button
                   onClick={handleGoogleSignIn}
                   disabled={isLoading}
-                  className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-lg py-3 text-sm sm:text-base"
+                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg py-3 text-sm sm:text-base"
                 >
                   {isLoading ? (
                     <div className="flex items-center space-x-2">
@@ -94,42 +95,42 @@ export function LoginPage() {
             </Card>
 
             {/* Features Card */}
-            <Card className="border-2 border-red-100 shadow-xl bg-gradient-to-br from-white to-yellow-50">
+            <Card className="border-2 border-blue-100 shadow-xl bg-gradient-to-br from-white to-indigo-50">
               <CardHeader>
                 <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
                   Platform Features
                 </CardTitle>
                 <CardDescription className="text-sm sm:text-base text-gray-600">
-                  Comprehensive data management tools for your business
+                  Everything you need for collaborative data management
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-start space-x-3">
-                  <FileSpreadsheet className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                  <GitBranch className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h4 className="font-semibold text-gray-900 text-sm sm:text-base">Project Collaboration</h4>
+                    <p className="text-xs sm:text-sm text-gray-600">Create projects and invite team members with role-based access</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <FileSpreadsheet className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
                   <div>
                     <h4 className="font-semibold text-gray-900 text-sm sm:text-base">Multi-Format Support</h4>
-                    <p className="text-xs sm:text-sm text-gray-600">Upload and view CSV, Excel, PDF, and image files</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Upload and analyze CSV, Excel, PDF, and image files</p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
-                  <Shield className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                  <Users className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <h4 className="font-semibold text-gray-900 text-sm sm:text-base">Secure Access Control</h4>
-                    <p className="text-xs sm:text-sm text-gray-600">Role-based permissions and activity tracking</p>
+                    <h4 className="font-semibold text-gray-900 text-sm sm:text-base">Team Management</h4>
+                    <p className="text-xs sm:text-sm text-gray-600">Invite collaborators via email with customizable permissions</p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
-                  <Users className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                  <BarChart3 className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <h4 className="font-semibold text-gray-900 text-sm sm:text-base">Team Collaboration</h4>
-                    <p className="text-xs sm:text-sm text-gray-600">Comments and real-time data sharing</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <BarChart3 className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <h4 className="font-semibold text-gray-900 text-sm sm:text-base">Analytics Dashboard</h4>
-                    <p className="text-xs sm:text-sm text-gray-600">Comprehensive activity logs and insights</p>
+                    <h4 className="font-semibold text-gray-900 text-sm sm:text-base">Analytics & Insights</h4>
+                    <p className="text-xs sm:text-sm text-gray-600">Comprehensive activity tracking and data visualization</p>
                   </div>
                 </div>
               </CardContent>
@@ -138,7 +139,7 @@ export function LoginPage() {
 
           <div className="text-center">
             <p className="text-xs sm:text-sm text-gray-500">
-              Secure • Professional • Scalable
+              Open Source • Collaborative • Scalable
             </p>
           </div>
         </div>
