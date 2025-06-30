@@ -13,14 +13,13 @@ export function Header() {
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 sm:h-16">
           <div className="flex items-center space-x-2 sm:space-x-4">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-red-600 to-red-800 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm sm:text-lg">A</span>
-            </div>
-            <div>
-              <h1 className="text-base sm:text-xl font-bold bg-gradient-to-r from-red-700 to-red-900 bg-clip-text text-transparent">
-                Algum Africa Capital LLP
-              </h1>
-              <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">Data Management System</p>
+            <img 
+              src="/algumlogo.svg" 
+              alt="Algum Africa Capital LLP" 
+              className="h-8 w-auto sm:h-10"
+            />
+            <div className="hidden sm:block">
+              <p className="text-xs sm:text-sm text-gray-600">Data Management System</p>
             </div>
           </div>
 
