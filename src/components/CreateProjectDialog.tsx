@@ -2,8 +2,8 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,7 @@ import {
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from '@/hooks/use-toast'
+import { FolderPlus } from 'lucide-react'
 
 interface CreateProjectDialogProps {
   open: boolean
@@ -62,14 +63,15 @@ export function CreateProjectDialog({ open, onOpenChange, onProjectCreated }: Cr
 
       toast({
         title: 'Project Created',
-        description: `${name} has been created successfully.`,
+        description: `"${name}" has been created successfully.`,
       })
 
       // Reset form
       setName('')
       setDescription('')
-      onOpenChange(false)
+      
       onProjectCreated()
+      onOpenChange(false)
       
     } catch (error) {
       console.error('Error creating project:', error)
@@ -85,52 +87,57 @@ export function CreateProjectDialog({ open, onOpenChange, onProjectCreated }: Cr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Create New Project</DialogTitle>
+          <DialogTitle className="flex items-center gap-2 text-blue-700">
+            <FolderPlus className="h-5 w-5" />
+            Create New Project
+          </DialogTitle>
           <DialogDescription>
-            Create a new project to collaborate with your team on data analysis.
+            Create a new project to organize and collaborate on your data files.
           </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Project Name</Label>
+          <div>
+            <Label htmlFor="name">Project Name *</Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Enter project name"
+              placeholder="Enter project name..."
               required
               disabled={isCreating}
+              className="border-blue-200 focus:border-blue-400"
             />
           </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="description">Description (Optional)</Label>
+          <div>
+            <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe your project..."
-              rows={3}
+              placeholder="Enter project description (optional)..."
               disabled={isCreating}
+              className="border-blue-200 focus:border-blue-400"
             />
           </div>
           
-          <div className="flex justify-end space-x-2 pt-4">
+          <div className="flex gap-2 pt-4">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isCreating}
+              className="flex-1"
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              disabled={isCreating || !name.trim()}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+              disabled={!name.trim() || isCreating}
+              className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
             >
               {isCreating ? 'Creating...' : 'Create Project'}
             </Button>
