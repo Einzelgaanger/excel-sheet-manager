@@ -16,9 +16,10 @@ interface FileUploadDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onUploadComplete: () => void
+  projectId?: string
 }
 
-export function FileUploadDialog({ open, onOpenChange, onUploadComplete }: FileUploadDialogProps) {
+export function FileUploadDialog({ open, onOpenChange, onUploadComplete, projectId }: FileUploadDialogProps) {
   const { profile } = useAuth()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -144,22 +145,26 @@ export function FileUploadDialog({ open, onOpenChange, onUploadComplete }: FileU
           file_type: selectedFile.type,
           file_url: publicUrl,
           file_size: selectedFile.size,
-          created_by: profile.id
+          created_by: profile.id,
+          project_id: projectId
         }])
 
       if (insertError) throw insertError
 
       // Log the activity
-      await supabase
-        .from('activity_logs')
-        .insert([{
-          user_id: profile.id,
-          user_name: profile.full_name || profile.email,
-          user_email: profile.email,
-          action_type: 'upload',
-          sheet_name: name.trim(),
-          details: `Uploaded ${supportedTypes[selectedFile.type as keyof typeof supportedTypes]?.label || 'file'} (${(selectedFile.size / 1024).toFixed(1)} KB)`
-        }])
+      if (projectId) {
+        await supabase
+          .from('activity_logs')
+          .insert([{
+            user_id: profile.id,
+            user_name: profile.full_name || profile.email,
+            user_email: profile.email,
+            action_type: 'upload',
+            sheet_name: name.trim(),
+            project_id: projectId,
+            details: `Uploaded ${supportedTypes[selectedFile.type as keyof typeof supportedTypes]?.label || 'file'} (${(selectedFile.size / 1024).toFixed(1)} KB)`
+          }])
+      }
 
       setProgress(100)
 
@@ -207,7 +212,7 @@ export function FileUploadDialog({ open, onOpenChange, onUploadComplete }: FileU
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-red-700 flex items-center gap-2">
+          <DialogTitle className="text-blue-700 flex items-center gap-2">
             <Upload className="h-5 w-5" />
             Upload File
           </DialogTitle>
@@ -222,7 +227,7 @@ export function FileUploadDialog({ open, onOpenChange, onUploadComplete }: FileU
               ref={fileInputRef}
               onChange={handleFileSelect}
               accept=".csv,.pdf,.png,.jpg,.jpeg"
-              className="border-red-200 focus:border-red-400"
+              className="border-blue-200 focus:border-blue-400"
             />
             <p className="text-xs text-gray-500 mt-1">
               Supported: CSV, PDF, PNG, JPEG files only
@@ -230,15 +235,15 @@ export function FileUploadDialog({ open, onOpenChange, onUploadComplete }: FileU
           </div>
 
           {selectedFile && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <div className="flex items-center gap-3">
                 {(() => {
                   const IconComponent = getFileIcon()
-                  return <IconComponent className="h-8 w-8 text-red-600" />
+                  return <IconComponent className="h-8 w-8 text-blue-600" />
                 })()}
                 <div className="flex-1">
-                  <p className="font-medium text-red-900">{selectedFile.name}</p>
-                  <p className="text-sm text-red-700">
+                  <p className="font-medium text-blue-900">{selectedFile.name}</p>
+                  <p className="text-sm text-blue-700">
                     {getFileTypeLabel()} • {(selectedFile.size / 1024).toFixed(1)} KB
                   </p>
                 </div>
@@ -253,7 +258,7 @@ export function FileUploadDialog({ open, onOpenChange, onUploadComplete }: FileU
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter file name..."
-              className="border-red-200 focus:border-red-400"
+              className="border-blue-200 focus:border-blue-400"
             />
           </div>
 
@@ -264,7 +269,7 @@ export function FileUploadDialog({ open, onOpenChange, onUploadComplete }: FileU
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Enter description (optional)..."
-              className="border-red-200 focus:border-red-400"
+              className="border-blue-200 focus:border-blue-400"
             />
           </div>
 
@@ -290,7 +295,7 @@ export function FileUploadDialog({ open, onOpenChange, onUploadComplete }: FileU
             <Button
               onClick={handleUpload}
               disabled={!selectedFile || !name.trim() || uploading}
-              className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
             >
               {uploading ? 'Uploading...' : 'Upload'}
             </Button>

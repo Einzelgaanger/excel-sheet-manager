@@ -62,7 +62,7 @@ export function ProjectMembersDialog({ open, onOpenChange, projectId, userRole }
           role,
           user_id,
           joined_at,
-          user_profiles (
+          user_profiles!project_members_user_id_fkey (
             full_name,
             email,
             avatar_url
