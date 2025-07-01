@@ -16,7 +16,7 @@ import {
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from '@/hooks/use-toast'
-import { UserPlus, Mail, Trash2 } from 'lucide-react'
+import { UserPlus, Mail, Trash2, AlertCircle } from 'lucide-react'
 
 interface ProjectMembersDialogProps {
   open: boolean
@@ -42,6 +42,7 @@ type PendingInvitation = {
   email: string
   role: string
   created_at: string
+  expires_at: string
 }
 
 export function ProjectMembersDialog({ open, onOpenChange, projectId, userRole }: ProjectMembersDialogProps) {
@@ -55,6 +56,8 @@ export function ProjectMembersDialog({ open, onOpenChange, projectId, userRole }
 
   const fetchMembers = async () => {
     try {
+      console.log('Fetching members for project:', projectId)
+      
       const { data: membersData, error: membersError } = await supabase
         .from('project_members')
         .select(`
@@ -71,16 +74,26 @@ export function ProjectMembersDialog({ open, onOpenChange, projectId, userRole }
         .eq('project_id', projectId)
         .order('joined_at', { ascending: true })
 
-      if (membersError) throw membersError
+      if (membersError) {
+        console.error('Members fetch error:', membersError)
+        throw membersError
+      }
+
+      console.log('Members data:', membersData)
 
       const { data: invitationsData, error: invitationsError } = await supabase
         .from('project_invitations')
-        .select('id, email, role, created_at')
+        .select('id, email, role, created_at, expires_at')
         .eq('project_id', projectId)
         .is('accepted_at', null)
         .order('created_at', { ascending: false })
 
-      if (invitationsError) throw invitationsError
+      if (invitationsError) {
+        console.error('Invitations fetch error:', invitationsError)
+        throw invitationsError
+      }
+
+      console.log('Invitations data:', invitationsData)
 
       setMembers(membersData || [])
       setInvitations(invitationsData || [])
@@ -110,8 +123,12 @@ export function ProjectMembersDialog({ open, onOpenChange, projectId, userRole }
     setIsInviting(true)
     
     try {
+      const emailToInvite = inviteEmail.trim().toLowerCase()
+      
       // Check if user is already a member
-      const existingMember = members.find(m => m.user_profiles.email === inviteEmail.trim())
+      const existingMember = members.find(m => 
+        m.user_profiles.email.toLowerCase() === emailToInvite
+      )
       if (existingMember) {
         toast({
           title: 'User Already Member',
@@ -122,7 +139,9 @@ export function ProjectMembersDialog({ open, onOpenChange, projectId, userRole }
       }
 
       // Check if invitation already exists
-      const existingInvitation = invitations.find(i => i.email === inviteEmail.trim())
+      const existingInvitation = invitations.find(i => 
+        i.email.toLowerCase() === emailToInvite
+      )
       if (existingInvitation) {
         toast({
           title: 'Invitation Already Sent',
@@ -135,22 +154,37 @@ export function ProjectMembersDialog({ open, onOpenChange, projectId, userRole }
       // Generate invitation token
       const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
 
+      console.log('Creating invitation:', {
+        project_id: projectId,
+        email: emailToInvite,
+        role: inviteRole,
+        invited_by: profile.id,
+        token
+      })
+
       // Create invitation
-      const { error } = await supabase
+      const { data: invitationData, error } = await supabase
         .from('project_invitations')
         .insert([{
           project_id: projectId,
-          email: inviteEmail.trim(),
+          email: emailToInvite,
           role: inviteRole,
           invited_by: profile.id,
           token
         }])
+        .select()
+        .single()
 
-      if (error) throw error
+      if (error) {
+        console.error('Invitation creation error:', error)
+        throw error
+      }
+
+      console.log('Invitation created:', invitationData)
 
       toast({
         title: 'Invitation Sent',
-        description: `Invitation sent to ${inviteEmail}`,
+        description: `Invitation sent to ${emailToInvite}. They will receive an email with instructions to join the project.`,
       })
 
       // Reset form
@@ -174,12 +208,17 @@ export function ProjectMembersDialog({ open, onOpenChange, projectId, userRole }
 
   const handleRoleChange = async (memberId: string, newRole: string) => {
     try {
+      console.log('Updating role:', { memberId, newRole })
+      
       const { error } = await supabase
         .from('project_members')
         .update({ role: newRole })
         .eq('id', memberId)
 
-      if (error) throw error
+      if (error) {
+        console.error('Role update error:', error)
+        throw error
+      }
 
       toast({
         title: 'Role Updated',
@@ -197,18 +236,23 @@ export function ProjectMembersDialog({ open, onOpenChange, projectId, userRole }
     }
   }
 
-  const handleRemoveMember = async (memberId: string) => {
+  const handleRemoveMember = async (memberId: string, memberEmail: string) => {
     try {
+      console.log('Removing member:', { memberId, memberEmail })
+      
       const { error } = await supabase
         .from('project_members')
         .delete()
         .eq('id', memberId)
 
-      if (error) throw error
+      if (error) {
+        console.error('Member removal error:', error)
+        throw error
+      }
 
       toast({
         title: 'Member Removed',
-        description: 'Member has been removed from the project.',
+        description: `${memberEmail} has been removed from the project.`,
       })
 
       fetchMembers()
@@ -222,7 +266,38 @@ export function ProjectMembersDialog({ open, onOpenChange, projectId, userRole }
     }
   }
 
+  const handleRemoveInvitation = async (invitationId: string, email: string) => {
+    try {
+      console.log('Removing invitation:', { invitationId, email })
+      
+      const { error } = await supabase
+        .from('project_invitations')
+        .delete()
+        .eq('id', invitationId)
+
+      if (error) {
+        console.error('Invitation removal error:', error)
+        throw error
+      }
+
+      toast({
+        title: 'Invitation Cancelled',
+        description: `Invitation to ${email} has been cancelled.`,
+      })
+
+      fetchMembers()
+    } catch (error) {
+      console.error('Error removing invitation:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to cancel invitation.',
+        variant: 'destructive',
+      })
+    }
+  }
+
   const canManageMembers = userRole === 'admin'
+  const isExpired = (expiresAt: string) => new Date(expiresAt) < new Date()
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -230,7 +305,7 @@ export function ProjectMembersDialog({ open, onOpenChange, projectId, userRole }
         <DialogHeader>
           <DialogTitle>Project Members</DialogTitle>
           <DialogDescription>
-            Manage project members and send invitations.
+            Manage project members and send invitations. {canManageMembers ? 'As an admin, you can invite new members and manage existing ones.' : 'Contact a project admin to invite new members.'}
           </DialogDescription>
         </DialogHeader>
         
@@ -333,7 +408,7 @@ export function ProjectMembersDialog({ open, onOpenChange, projectId, userRole }
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleRemoveMember(member.id)}
+                          onClick={() => handleRemoveMember(member.id, member.user_profiles.email)}
                           className="text-red-600 hover:text-red-700 hover:bg-red-50"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -359,12 +434,32 @@ export function ProjectMembersDialog({ open, onOpenChange, projectId, userRole }
                       </div>
                       <div>
                         <p className="font-medium">{invitation.email}</p>
-                        <p className="text-sm text-gray-500">Invited {new Date(invitation.created_at).toLocaleDateString()}</p>
+                        <div className="flex items-center space-x-2 text-sm text-gray-500">
+                          <span>Invited {new Date(invitation.created_at).toLocaleDateString()}</span>
+                          {isExpired(invitation.expires_at) && (
+                            <div className="flex items-center space-x-1 text-red-600">
+                              <AlertCircle className="h-3 w-3" />
+                              <span>Expired</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <Badge variant="outline" className="capitalize">
-                      {invitation.role}
-                    </Badge>
+                    <div className="flex items-center space-x-2">
+                      <Badge variant="outline" className="capitalize">
+                        {invitation.role}
+                      </Badge>
+                      {canManageMembers && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveInvitation(invitation.id, invitation.email)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

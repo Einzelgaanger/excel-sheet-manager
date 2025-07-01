@@ -36,6 +36,8 @@ export function CreateProjectDialog({ open, onOpenChange, onProjectCreated }: Cr
     setIsCreating(true)
     
     try {
+      console.log('Creating project with:', { name: name.trim(), description: description.trim(), created_by: profile.id })
+      
       // Create the project
       const { data: project, error: projectError } = await supabase
         .from('projects')
@@ -47,7 +49,12 @@ export function CreateProjectDialog({ open, onOpenChange, onProjectCreated }: Cr
         .select()
         .single()
 
-      if (projectError) throw projectError
+      if (projectError) {
+        console.error('Project creation error:', projectError)
+        throw projectError
+      }
+
+      console.log('Project created successfully:', project)
 
       // Add the creator as an admin member
       const { error: memberError } = await supabase
@@ -59,7 +66,12 @@ export function CreateProjectDialog({ open, onOpenChange, onProjectCreated }: Cr
           invited_by: profile.id
         }])
 
-      if (memberError) throw memberError
+      if (memberError) {
+        console.error('Member creation error:', memberError)
+        throw memberError
+      }
+
+      console.log('Member added successfully')
 
       toast({
         title: 'Project Created',
