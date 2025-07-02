@@ -31,12 +31,23 @@ export function CreateProjectDialog({ open, onOpenChange, onProjectCreated }: Cr
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!profile || !name.trim()) return
+    if (!profile || !name.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Please enter a project name.',
+        variant: 'destructive',
+      })
+      return
+    }
 
     setIsCreating(true)
     
     try {
-      console.log('Creating project with:', { name: name.trim(), description: description.trim(), created_by: profile.id })
+      console.log('Creating project with:', { 
+        name: name.trim(), 
+        description: description.trim(), 
+        created_by: profile.id 
+      })
       
       // Create the project
       const { data: project, error: projectError } = await supabase
@@ -68,10 +79,11 @@ export function CreateProjectDialog({ open, onOpenChange, onProjectCreated }: Cr
 
       if (memberError) {
         console.error('Member creation error:', memberError)
-        throw memberError
+        // Don't throw here - project was created successfully
+        console.warn('Failed to add creator as member, but project creation succeeded')
+      } else {
+        console.log('Creator added as admin member successfully')
       }
-
-      console.log('Member added successfully')
 
       toast({
         title: 'Project Created',
@@ -85,11 +97,20 @@ export function CreateProjectDialog({ open, onOpenChange, onProjectCreated }: Cr
       onProjectCreated()
       onOpenChange(false)
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating project:', error)
+      
+      let errorMessage = 'Failed to create project. Please try again.'
+      
+      if (error?.code === '42501') {
+        errorMessage = 'You do not have permission to create projects. Please check your authentication status.'
+      } else if (error?.message) {
+        errorMessage = error.message
+      }
+      
       toast({
         title: 'Error',
-        description: 'Failed to create project. Please try again.',
+        description: errorMessage,
         variant: 'destructive',
       })
     } finally {
@@ -148,7 +169,7 @@ export function CreateProjectDialog({ open, onOpenChange, onProjectCreated }: Cr
             </Button>
             <Button
               type="submit"
-              disabled={!name.trim() || isCreating}
+              disabled={!name.trim() || isCreating || !profile}
               className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
             >
               {isCreating ? 'Creating...' : 'Create Project'}
